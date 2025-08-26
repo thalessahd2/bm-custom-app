@@ -1,0 +1,4 @@
+<isdecorate template="application/MenuFrame">
+    <h1>Olá Mundo! Este é seu módulo personalizado no Business Manager 🎉</h1>
+    <p>Você pode usar esta área para relatórios, configurações ou qualquer funcionalidade administrativa.</p>
+</isdecorate>

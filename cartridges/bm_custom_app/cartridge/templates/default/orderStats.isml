@@ -1,0 +1,164 @@
+<isdecorate template="application/MenuFrame">
+<iscontenttype type="text/html" charset="UTF-8"/>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <title>Pedidos por Método de Pagamento</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            padding: 20px;
+            background: #f6f7f9;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,.08);
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto 20px;
+        }
+        h1 { margin: 0 0 6px; font-size: 20px; }
+        h2 { margin: 0 0 10px; font-size: 18px; }
+        .sub { color: #666; margin-bottom: 16px; }
+        .chart-wrap { position: relative; width: 100%; height: 420px; }
+        .period-bar { margin: 0 0 16px; }
+        label { font-weight: 600; margin-right: 8px; }
+    </style>
+</head>
+<body>
+
+<form method="get" action="${URLUtils.url('CustomBM-FilterOrders')}" class="period-bar">
+    <label for="period">Período:</label>
+    <select id="period" name="period" onchange="this.form.submit()">
+        <option value="1"  ${pdict.period == 1  ? 'selected' : ''}>Último dia</option>
+        <option value="7"  ${pdict.period == 7  ? 'selected' : ''}>Últimos 7 dias</option>
+        <option value="15" ${pdict.period == 15 ? 'selected' : ''}>Últimos 15 dias</option>
+        <option value="30" ${pdict.period == 30 ? 'selected' : ''}>Últimos 30 dias</option>
+    </select>
+</form>
+
+<div class="card">
+    <h1>Pedidos por método de pagamento</h1>
+    <div class="sub">Janela de análise: últimos ${pdict.days} dia(s)</div>
+</div>
+
+<!-- Quantidades -->
+<div class="card">
+    <h2>Quantidade de pedidos</h2>
+    <div class="chart-wrap">
+        <canvas id="qtyChart"></canvas>
+    </div>
+</div>
+
+<!-- Receita -->
+<div class="card">
+    <h2>Receita (${pdict.currencyCode})</h2>
+    <div class="chart-wrap">
+        <canvas id="revChart"></canvas>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+
+<script>
+window.addEventListener('DOMContentLoaded', function () {
+    if (!window.Chart) return;
+
+    // Dados vindos do controller
+    var currency = '${pdict.currencyCode}';
+    var labels = ['CREDIT CARD', 'PIX'];
+    var qtyData = [
+        ${pdict.stats.CREDIT_CARD.count},
+        ${pdict.stats.HubPIX.count}
+    ];
+    var revData = [
+        ${pdict.stats.CREDIT_CARD.revenue},
+        ${pdict.stats.HubPIX.revenue}
+    ];
+
+    // ===== Gráfico de Quantidades =====
+    (function () {
+        var canvas = document.getElementById('qtyChart');
+        if (!canvas) return;
+        var existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
+
+        var ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ 
+                    label: 'Quantidade', 
+                    data: qtyData,
+                    backgroundColor: ['#6495ED','#CD5C5C']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) { return 'Quantidade: ' + (ctx.parsed.y ?? 0); }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Método de Pagamento' } },
+                    y: { beginAtZero: true, title: { display: true, text: 'Pedidos' } }
+                }
+            }
+        });
+    })();
+
+    // ===== Gráfico de Receita =====
+    (function () {
+        var canvas = document.getElementById('revChart');
+        if (!canvas) return;
+        var existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
+
+        var ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'Receita (' + currency + ')', data: revData, backgroundColor: ['#6495ED','#CD5C5C'] }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                var v = Number(ctx.parsed.y || 0);
+                                return 'Receita: ' + currency + ' ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Método de Pagamento' } },
+                    y: { 
+                        beginAtZero: true,
+                        title: { display: true, text: 'Receita (' + currency + ')' },
+                        ticks: {
+                            callback: function(value){ return 'R$ ' + Number(value).toLocaleString('pt-BR'); }
+                        }
+                    }
+                }
+            }
+        });
+    })();
+});
+</script>
+</body>
+</html>
+</isdecorate>
